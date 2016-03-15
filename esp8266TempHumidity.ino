@@ -10,8 +10,6 @@ const char* hostName = "hoopy-test"; // TODO: CHANGE FOR EACH DEVICE!
 const char* host = "192.168.0.106";
 const int httpPort = 8080;
 
-//#define BATTERY_TEST
-
 #define DHTTYPE DHT22
 #define DHTPIN  12
 
@@ -51,7 +49,6 @@ void getTempHum() {
   for (int i=0; i < numReadings; i++) {
     toggleBlueLed();
     
-#ifndef BATTERY_TEST
     delay(2000);
     yield();
     
@@ -67,7 +64,6 @@ void getTempHum() {
     Serial.print(temp);
     Serial.print(F("/"));
     Serial.println(humidity);
-#endif
 
     temps[i] = temp;
     hums[i] = humidity;
@@ -176,7 +172,6 @@ void setup() {
   Serial.begin(115200);
   delay(100);
 
-#ifndef BATTERY_TEST
   // We start by connecting to a WiFi network
   readAllAndReport();
 
@@ -185,18 +180,11 @@ void setup() {
 
   // TODO: change WAKE_RF_DEFAULT to no RF when not sending WIFI next time
   ESP.deepSleep(numberOfMinutesToSleep * MICROSECONDS_PER_MINUTE, WAKE_RF_DEFAULT);
-#endif
 }
 
 
 void loop() {
   // never gets here, so do nothing
-#ifdef BATTERY_TEST
-  Serial.println("RUNNING");
-  readAllAndReport();
-  Serial.println("Delay...");
-  delay(60000);
-#endif
 }
 
 
