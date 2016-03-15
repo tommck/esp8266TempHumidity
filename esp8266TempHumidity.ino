@@ -5,17 +5,18 @@
  
 const char* ssid     = "McKearneys";
 const char* password = "";
-const char* hostName = "hoopy-inside"; // TODO: CHANGE FOR EACH DEVICE!
+const char* hostName = "hoopy-test"; // TODO: CHANGE FOR EACH DEVICE!
  
 const char* host = "192.168.0.106";
 const int httpPort = 8080;
 
-#define BATTERY_TEST
+//#define BATTERY_TEST
 
 #define DHTTYPE DHT22
 #define DHTPIN  12
 
-#define POLL_INTERVAL_MICROSECONDS 15*60*1000000  // Minutes * 60 seconds * 1 million 
+const int numberOfMinutesToSleep = 1;
+#define MICROSECONDS_PER_MINUTE 60*1000000  // 60 seconds * 1 million 
 
 DHT dht(DHTPIN, DHTTYPE, 11); // 11 works fine for ESP8266
 
@@ -111,7 +112,12 @@ void readAllAndReport() {
   Serial.print(F("Connecting to "));
   Serial.println(ssid);
   
-  WiFi.begin(ssid, password);
+  WiFi.printDiag(Serial);
+  Serial.println("After Diag");
+
+  WiFi.begin("McKearneys", "");
+
+  Serial.println(F("After Begin"));
   
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -178,7 +184,7 @@ void setup() {
   blueLed(false);
 
   // TODO: change WAKE_RF_DEFAULT to no RF when not sending WIFI next time
-  ESP.deepSleep(POLL_INTERVAL_MICROSECONDS, WAKE_RF_DEFAULT);
+  ESP.deepSleep(numberOfMinutesToSleep * MICROSECONDS_PER_MINUTE, WAKE_RF_DEFAULT);
 #endif
 }
 
@@ -192,5 +198,6 @@ void loop() {
   delay(60000);
 #endif
 }
+
 
 
