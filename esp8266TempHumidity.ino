@@ -175,7 +175,9 @@ void setup() {
   // We start by connecting to a WiFi network
   readAllAndReport();
 
-  Serial.println(F("Zzzz..."));
+  Serial.print(F("Sleeping for "));
+  Serial.print(numberOfMinutesToSleep);
+  Serial.println(F("minutes. Zzzz..."));
   blueLed(false);
 
   // TODO: change WAKE_RF_DEFAULT to no RF when not sending WIFI next time
