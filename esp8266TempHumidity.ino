@@ -1,96 +1,174 @@
-#include <DHT.h>
+#include <elapsedMillis.h>
 
+#include <EEPROM.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
- 
+#include <QuickStats.h>
+
+#include "Battery.h"
+#include "Led.h"
+#include "Dht22.h"
+
 const char* ssid     = "McKearneys";
 const char* password = "";
-const char* hostName = "hoopy-test"; // TODO: CHANGE FOR EACH DEVICE!
+const char* hostName = "hoopy-dev"; // TODO: CHANGE FOR EACH DEVICE!
  
 const char* host = "192.168.0.106";
 const int httpPort = 8080;
 
-#define DHTTYPE DHT22
 #define DHTPIN  12
-
-const int numberOfMinutesToSleep = 1;
 #define MICROSECONDS_PER_MINUTE 60*1000000  // 60 seconds * 1 million 
 
-DHT dht(DHTPIN, DHTTYPE, 11); // 11 works fine for ESP8266
+const int numberOfMinutesToSleep = 1;
 
+const int numTimesPerReading = 5; // times to read sensor per fread
 const int blueLedPin = 2;
-int ledState = LOW;
+const int numTimesPerReadingUntilSend = 30;
 
-const int numReadings = 5;
-float temps[numReadings];
-float hums[numReadings];
-float batteryLevels[numReadings];
+const byte READINGS_MARKER = 0x02; // Change/Increment this if we want to treat the EEPROM as "fresh"
+struct Readings {
+  byte marker; // indicator that we're reading proper data
+  uint8_t readingsFinished;
 
-void blueLed(bool onOff) {
-  if (onOff) 
-  {      
-    ledState = HIGH;
+  int temperature[numTimesPerReadingUntilSend];
+  int humidity[numTimesPerReadingUntilSend];
+  int batteryLevel[numTimesPerReadingUntilSend];
+};
+
+// forward declarations
+void InitializeStoredData(Readings& data);
+int normalizeReadings(float* readings, int length);
+String arrayToJson(int* arr, int length);
+void SendData(Readings& data);
+
+void setup() {
+  elapsedMillis sinceStart;
+
+  WiFi.forceSleepBegin();
+  
+  // temp/humidity + battery
+  Dht22 dht22(DHTPIN);
+  Battery battery(A0);
+  
+  // LED for debugging
+  Led led(2); // pin 2
+
+  EEPROM.begin(4096);
+  Serial.begin(115200);
+  delay(100);
+  Serial.println(); // newline after wakeup junk
+
+  // First, read the existing readings from the EEPROM
+  Readings storedData;
+  EEPROM.get(0, storedData);
+  if (storedData.marker != READINGS_MARKER) {
+    Serial.println("No Readings marker, initializing");
+    InitializeStoredData(storedData);
   }
-  else
-  {
-    ledState = LOW;
+
+  Serial.print("Num Readings So Far: ");
+  Serial.println(storedData.readingsFinished);
+
+  // read new values
+  float 
+    temperature[numTimesPerReading], 
+    humidity[numTimesPerReading], 
+    batteryLevels[numTimesPerReading];
+      
+  dht22.ReadTempAndHumidity(numTimesPerReading, temperature, humidity);
+  battery.ReadLevels(numTimesPerReading, batteryLevels);
+
+  // normalize values
+
+  int temp = normalizeReadings(temperature, numTimesPerReading);
+  int hum = normalizeReadings(humidity, numTimesPerReading);
+  int batt = normalizeReadings(batteryLevels, numTimesPerReading);
+
+  Serial.print(F("Normalized Temp/Hum/Battery: "));
+  Serial.print(temp);
+  Serial.print(F(" "));
+  Serial.print(hum);
+  Serial.print(F(" "));
+  Serial.print(batt);
+  Serial.println();
+
+  int newIndex = storedData.readingsFinished;
+  storedData.temperature[newIndex] = temp;
+  storedData.humidity[newIndex] = hum;
+  storedData.batteryLevel[newIndex] = batt;
+
+  if (newIndex == numTimesPerReadingUntilSend-1) {
+
+    Serial.println("Last Reading: uploading!");
+    // this is the last reading before send, so send now
+    SendData(storedData);
+
+    InitializeStoredData(storedData);
   }
-  digitalWrite(blueLedPin, ledState);
+  else {
+    ++storedData.readingsFinished;
+  }
+
+  // save the structure back
+  // TODO: do this piecemeal, rather than the whole structure at once
+  EEPROM.put(0, storedData);
+  EEPROM.end();
+  
+  Serial.print(F("Sleeping for "));
+  Serial.print(numberOfMinutesToSleep);
+  Serial.println(F(" minutes. Zzzz..."));
+  led.OnOff(false);
+
+  Serial.print("Took this many millis: ");
+  Serial.println(sinceStart);
+
+  WakeMode wakeMode = WAKE_RF_DISABLED;
+  if (storedData.readingsFinished == numTimesPerReadingUntilSend-1) {
+    // wake up w/ Wifi next time
+    wakeMode = WAKE_RF_DEFAULT;
+  }
+
+  // sleep for proper minutes minus processing time
+  uint32_t timeToSleep = numberOfMinutesToSleep * MICROSECONDS_PER_MINUTE - sinceStart * 1000;
+  
+  ESP.deepSleep(timeToSleep, wakeMode);
 }
 
-void toggleBlueLed() {
-  blueLed(ledState == LOW);
-}
+void InitializeStoredData(Readings& data) {
+    data.marker = READINGS_MARKER;
+    data.readingsFinished = 0;
 
-void getTempHum() {
-  float temp = -1;
-  float humidity = -1;
-
-  for (int i=0; i < numReadings; i++) {
-    toggleBlueLed();
-    
-    delay(2000);
-    yield();
-    
-    temp = dht.readTemperature(true);     // Read temperature as Fahrenheit
-    if (isnan(temp)) {
-      temp = -1; // TODO: adjust server code to ignore -1s
+    for(int i=0; i < numTimesPerReadingUntilSend; ++i) {
+      data.temperature[i] = 
+        data.humidity[i] = 
+        data.batteryLevel[i] = -1;
     }
-    humidity = dht.readHumidity();        // Read humidity (percent)
-    if (isnan(humidity)) {
-      humidity = -1; // TODO: adjust server code to ignore -1s
-    }
-    Serial.print(F("Temp/Hum: "));
-    Serial.print(temp);
-    Serial.print(F("/"));
-    Serial.println(humidity);
-
-    temps[i] = temp;
-    hums[i] = humidity;
-  }
 }
 
-void readBatteryLevel() {
 
-  for (int i=0; i < numReadings; i++) {
-    toggleBlueLed();
-    
-    int level = analogRead(A0);
-
-    batteryLevels[i] = level;
-
-    yield();
-  }
+void loop() {
+  // never gets here, so do nothing
 }
 
-String arrayToJson(float arr[]) 
+
+///////// IMPLEMENTATION below
+
+// global QuickStats for simple stats
+QuickStats stats;
+int normalizeReadings(float* readings, int length) {
+    stats.bubbleSort(readings, length);
+
+    return (int)stats.average(&readings[1], length-2);  
+}
+
+String arrayToJson(int* arr, int length) 
 {
   String result = F("[");
-  for(int i=0; i < numReadings; i++) 
+  for(int i=0; i < length; i++) 
   {
-    float val = arr[i];
+    int val = arr[i];
     result += arr[i];
-    if (i < numReadings-1) {
+    if (i < numTimesPerReading-1) {
       result += F(",");
     }
   }
@@ -99,19 +177,13 @@ String arrayToJson(float arr[])
   return result;
 }
 
-void readAllAndReport() {
-  getTempHum();
+void SendData(Readings& data) {
+    WiFi.forceSleepWake();
 
-  readBatteryLevel();
-
-  Serial.println();
-  Serial.print(F("Connecting to "));
-  Serial.println(ssid);
+    Serial.print(F("\nConnecting to "));
+    Serial.println(ssid);
   
-  WiFi.printDiag(Serial);
-  Serial.println("After Diag");
-
-  WiFi.begin("McKearneys", "");
+    WiFi.begin(ssid, "");
 
   Serial.println(F("After Begin"));
   
@@ -140,9 +212,9 @@ void readAllAndReport() {
   Serial.println(url);
 
   String messageBody = String(F("{\"temps\": ")) 
-    + arrayToJson(temps) + F(", \"humidity\": ") 
-    + arrayToJson(hums) + F(", \"battery\": ")
-    + arrayToJson(batteryLevels) + F("}\r\n");
+    + arrayToJson(data.temperature, numTimesPerReading) + F(", \"humidity\": ") 
+    + arrayToJson(data.humidity, numTimesPerReading) + F(", \"battery\": ")
+    + arrayToJson(data.batteryLevel, numTimesPerReading) + F("}\r\n");
 
   Serial.println(messageBody);
         
@@ -165,29 +237,6 @@ void readAllAndReport() {
   Serial.println(F("closing connection"));
 }
 
-
-
-void setup() {
-  pinMode(blueLedPin, OUTPUT); // Blue LED pin
-  Serial.begin(115200);
-  delay(100);
-
-  // We start by connecting to a WiFi network
-  readAllAndReport();
-
-  Serial.print(F("Sleeping for "));
-  Serial.print(numberOfMinutesToSleep);
-  Serial.println(F("minutes. Zzzz..."));
-  blueLed(false);
-
-  // TODO: change WAKE_RF_DEFAULT to no RF when not sending WIFI next time
-  ESP.deepSleep(numberOfMinutesToSleep * MICROSECONDS_PER_MINUTE, WAKE_RF_DEFAULT);
-}
-
-
-void loop() {
-  // never gets here, so do nothing
-}
 
 
 
