@@ -26,7 +26,7 @@ const int numTimesPerReading = 5; // times to read sensor per fread
 const int blueLedPin = 2;
 const int numTimesPerReadingUntilSend = 30;
 
-const uint8_t CODE_VERSION = 0x04; // Change/Increment this if we want to treat the EEPROM as "fresh"
+const uint8_t CODE_VERSION = 0x05; // Change/Increment this if we want to treat the EEPROM as "fresh"
 struct Readings {
   uint8_t marker; // indicator that we're reading proper data
   uint8_t readingsFinished;
@@ -42,36 +42,31 @@ int normalizeReadings(float* readings, int length);
 String arrayToJson(int* arr, int length);
 void SendData(Readings& data);
 
-void setup() {
-  elapsedMillis sinceStart;
+#define NO_SLEEP 1
 
-  Serial.print("\nHoop house version: ");
-  Serial.println(CODE_VERSION);
+// temp/humidity + battery
+Dht22 dht22(DHTPIN);
+Battery battery(A0);
 
-  // temp/humidity + battery
-  Dht22 dht22(DHTPIN);
-  Battery battery(A0);
-  
-  // LED for debugging
-  Led led(2); // pin 2
+// LED for debugging
+Led led(2); // pin 2
 
-  EEPROM.begin(4096);
-  Serial.begin(115200);
-  Utils::Delay(100);
-  Serial.println(); // newline after wakeup junk
 
-  // First, read the existing readings from the EEPROM
-  Readings storedData;
-  EEPROM.get(0, storedData);
-  if (storedData.marker != CODE_VERSION) {
-    Serial.println("No Readings marker, initializing");
-    InitializeStoredData(storedData);
+void loop() {
+#ifdef NO_SLEEP
+  Serial.println("Next Batch");
+  Readings data;
+  InitializeStoredData(data);
+  for(int i=0; i < numTimesPerReadingUntilSend; ++i) {
+    ReadValues(i, data);
+    Utils::Delay(numberOfMinutesToSleep * 60000);
   }
+  SendData(data);
+#endif
+}
 
-  Serial.print("Num Readings So Far: ");
-  Serial.println(storedData.readingsFinished);
-
-  // read new values
+void ReadValues(int index, Readings& storedData) {
+ // read new values
   float 
     temperature[numTimesPerReading], 
     humidity[numTimesPerReading], 
@@ -94,10 +89,38 @@ void setup() {
   Serial.print(batt);
   Serial.println();
 
+  storedData.temperature[index] = temp;
+  storedData.humidity[index] = hum;
+  storedData.batteryLevel[index] = batt;
+}
+
+
+void setup() {
+  Serial.begin(115200);
+  Utils::Delay(100);
+  Serial.println(); // newline after wakeup junk
+
+  Serial.print("\nHoop house version: ");
+  Serial.println(CODE_VERSION);
+#ifndef NO_SLEEP
+  
+  elapsedMillis sinceStart;
+  EEPROM.begin(4096);
+
+  // First, read the existing readings from the EEPROM
+  Readings storedData;
+  EEPROM.get(0, storedData);
+  if (storedData.marker != CODE_VERSION) {
+    Serial.println("No Readings marker, initializing");
+    InitializeStoredData(storedData);
+  }
+
+  Serial.print("Num Readings So Far: ");
+  Serial.println(storedData.readingsFinished);
+
+  
   int newIndex = storedData.readingsFinished;
-  storedData.temperature[newIndex] = temp;
-  storedData.humidity[newIndex] = hum;
-  storedData.batteryLevel[newIndex] = batt;
+  ReadValues(newIndex, storedData);
 
   if (newIndex == numTimesPerReadingUntilSend-1) {
 
@@ -134,6 +157,7 @@ void setup() {
   uint32_t timeToSleep = numberOfMinutesToSleep * MICROSECONDS_PER_MINUTE - sinceStart * 1000;
   
   ESP.deepSleep(timeToSleep, wakeMode);
+#endif
 }
 
 void InitializeStoredData(Readings& data) {
@@ -146,12 +170,6 @@ void InitializeStoredData(Readings& data) {
       data.batteryLevel[i] = -1;
     }
 }
-
-
-void loop() {
-  // never gets here, so do nothing
-}
-
 
 ///////// IMPLEMENTATION below
 

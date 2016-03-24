@@ -3,8 +3,12 @@
 
 void Utils::Delay(int ms) 
 {
-  delay(ms);
-  yield();
+  int msRemaining = ms;
+  while(msRemaining > 0) {
+    delay(100 < msRemaining ? 100 : msRemaining);
+    yield();
+    msRemaining -= 100;
+  }
 /*  
  This is supposed to prevent problems with watchdog timer resetting - clueless
     for(int i=1; i != ms;i++) 
