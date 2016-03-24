@@ -1,4 +1,5 @@
 #include "Dht22.h"
+#include "Utils.h"
 
 #define DHTTYPE DHT22
 
@@ -35,7 +36,7 @@ void Dht22::ReadTempAndHumidity(int numReadings, float* temps, float* hums)
   
       if (i < numReadings-1) 
       {
-        delay(2000); // mandatory between reads
+        Utils::Delay(2000); // mandatory between reads
       }
       yield();
     }

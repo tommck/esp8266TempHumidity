@@ -8,10 +8,11 @@
 #include "Battery.h"
 #include "Led.h"
 #include "Dht22.h"
+#include "Utils.h"
 
 const char* ssid     = "McKearneys";
 const char* password = "";
-const char* hostName = "hoopy-dev"; // TODO: CHANGE FOR EACH DEVICE!
+const char* hostName = "hoopy-inside"; // TODO: CHANGE FOR EACH DEVICE!
  
 const char* host = "192.168.0.106";
 const int httpPort = 8080;
@@ -25,9 +26,9 @@ const int numTimesPerReading = 5; // times to read sensor per fread
 const int blueLedPin = 2;
 const int numTimesPerReadingUntilSend = 30;
 
-const byte READINGS_MARKER = 0x02; // Change/Increment this if we want to treat the EEPROM as "fresh"
+const uint8_t CODE_VERSION = 0x04; // Change/Increment this if we want to treat the EEPROM as "fresh"
 struct Readings {
-  byte marker; // indicator that we're reading proper data
+  uint8_t marker; // indicator that we're reading proper data
   uint8_t readingsFinished;
 
   int temperature[numTimesPerReadingUntilSend];
@@ -44,8 +45,9 @@ void SendData(Readings& data);
 void setup() {
   elapsedMillis sinceStart;
 
-  WiFi.forceSleepBegin();
-  
+  Serial.print("\nHoop house version: ");
+  Serial.println(CODE_VERSION);
+
   // temp/humidity + battery
   Dht22 dht22(DHTPIN);
   Battery battery(A0);
@@ -55,13 +57,13 @@ void setup() {
 
   EEPROM.begin(4096);
   Serial.begin(115200);
-  delay(100);
+  Utils::Delay(100);
   Serial.println(); // newline after wakeup junk
 
   // First, read the existing readings from the EEPROM
   Readings storedData;
   EEPROM.get(0, storedData);
-  if (storedData.marker != READINGS_MARKER) {
+  if (storedData.marker != CODE_VERSION) {
     Serial.println("No Readings marker, initializing");
     InitializeStoredData(storedData);
   }
@@ -135,13 +137,13 @@ void setup() {
 }
 
 void InitializeStoredData(Readings& data) {
-    data.marker = READINGS_MARKER;
+    data.marker = CODE_VERSION;
     data.readingsFinished = 0;
 
     for(int i=0; i < numTimesPerReadingUntilSend; ++i) {
-      data.temperature[i] = 
-        data.humidity[i] = 
-        data.batteryLevel[i] = -1;
+      data.temperature[i] = -1;
+      data.humidity[i] = -1;
+      data.batteryLevel[i] = -1;
     }
 }
 
@@ -158,6 +160,7 @@ QuickStats stats;
 int normalizeReadings(float* readings, int length) {
     stats.bubbleSort(readings, length);
 
+    // trims off the largest and smallest values and averages the rest
     return (int)stats.average(&readings[1], length-2);  
 }
 
@@ -168,7 +171,7 @@ String arrayToJson(int* arr, int length)
   {
     int val = arr[i];
     result += arr[i];
-    if (i < numTimesPerReading-1) {
+    if (i < length-1) {
       result += F(",");
     }
   }
@@ -178,8 +181,6 @@ String arrayToJson(int* arr, int length)
 }
 
 void SendData(Readings& data) {
-    WiFi.forceSleepWake();
-
     Serial.print(F("\nConnecting to "));
     Serial.println(ssid);
   
@@ -188,7 +189,7 @@ void SendData(Readings& data) {
   Serial.println(F("After Begin"));
   
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
+    Utils::Delay(500);
     Serial.print(F("."));
     yield();
   }
@@ -211,10 +212,11 @@ void SendData(Readings& data) {
   Serial.print(F("POSTING to URL: "));
   Serial.println(url);
 
-  String messageBody = String(F("{\"temps\": ")) 
-    + arrayToJson(data.temperature, numTimesPerReading) + F(", \"humidity\": ") 
-    + arrayToJson(data.humidity, numTimesPerReading) + F(", \"battery\": ")
-    + arrayToJson(data.batteryLevel, numTimesPerReading) + F("}\r\n");
+  String messageBody = String(F("{\"version\": ")) + CODE_VERSION 
+    + F(", \"temps\": ") + arrayToJson(data.temperature, numTimesPerReadingUntilSend) 
+    + F(", \"humidity\": ") + arrayToJson(data.humidity, numTimesPerReadingUntilSend) 
+    + F(", \"battery\": ") + arrayToJson(data.batteryLevel, numTimesPerReadingUntilSend) 
+    + F("}\r\n");
 
   Serial.println(messageBody);
         
@@ -226,7 +228,7 @@ void SendData(Readings& data) {
   client.print(messageBody);
 
   // wait for the server to do its thing
-  delay(500);
+  Utils::Delay(500);
   
   // Read all the lines of the reply from server and print them to Serial
   while(client.available()){
@@ -236,7 +238,5 @@ void SendData(Readings& data) {
   
   Serial.println(F("closing connection"));
 }
-
-
 
 
