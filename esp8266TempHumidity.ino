@@ -44,7 +44,7 @@ void SendData(Readings& data);
 void ReadValues(int index, Readings& storedData);
 
 
-#define NO_SLEEP 1
+// #define NO_SLEEP 1
 
 // temp/humidity + battery
 Dht22 dht22(DHTPIN);
