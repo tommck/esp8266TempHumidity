@@ -41,6 +41,8 @@ void InitializeStoredData(Readings& data);
 int normalizeReadings(float* readings, int length);
 String arrayToJson(int* arr, int length);
 void SendData(Readings& data);
+void ReadValues(int index, Readings& storedData);
+
 
 #define NO_SLEEP 1
 
@@ -51,14 +53,15 @@ Battery battery(A0);
 // LED for debugging
 Led led(2); // pin 2
 
-
 void loop() {
 #ifdef NO_SLEEP
   Serial.println("Next Batch");
   Readings data;
   InitializeStoredData(data);
   for(int i=0; i < numTimesPerReadingUntilSend; ++i) {
+    led.OnOff(true);
     ReadValues(i, data);
+    led.OnOff(false);
     Utils::Delay(numberOfMinutesToSleep * 60000);
   }
   SendData(data);
@@ -71,6 +74,9 @@ void ReadValues(int index, Readings& storedData) {
     temperature[numTimesPerReading], 
     humidity[numTimesPerReading], 
     batteryLevels[numTimesPerReading];
+
+  Serial.print(F("Reading Values for index: "));
+  Serial.println(index);
       
   dht22.ReadTempAndHumidity(numTimesPerReading, temperature, humidity);
   battery.ReadLevels(numTimesPerReading, batteryLevels);
@@ -100,7 +106,7 @@ void setup() {
   Utils::Delay(100);
   Serial.println(); // newline after wakeup junk
 
-  Serial.print("\nHoop house version: ");
+  Serial.print(F("\nHoop house version: "));
   Serial.println(CODE_VERSION);
 #ifndef NO_SLEEP
   
@@ -111,12 +117,9 @@ void setup() {
   Readings storedData;
   EEPROM.get(0, storedData);
   if (storedData.marker != CODE_VERSION) {
-    Serial.println("No Readings marker, initializing");
+    Serial.println(F("No Readings marker, initializing"));
     InitializeStoredData(storedData);
   }
-
-  Serial.print("Num Readings So Far: ");
-  Serial.println(storedData.readingsFinished);
 
   
   int newIndex = storedData.readingsFinished;
@@ -124,7 +127,7 @@ void setup() {
 
   if (newIndex == numTimesPerReadingUntilSend-1) {
 
-    Serial.println("Last Reading: uploading!");
+    Serial.println(F("Last Reading: uploading!"));
     // this is the last reading before send, so send now
     SendData(storedData);
 
@@ -144,7 +147,7 @@ void setup() {
   Serial.println(F(" minutes. Zzzz..."));
   led.OnOff(false);
 
-  Serial.print("Took this many millis: ");
+  Serial.print(F("Took this many millis: "));
   Serial.println(sinceStart);
 
   WakeMode wakeMode = WAKE_RF_DISABLED;

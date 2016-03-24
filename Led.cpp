@@ -5,7 +5,8 @@ Led::Led(int pin){
   _pin = pin;
   _ledState = LOW;
   
-  pinMode(pin, OUTPUT); // Blue LED pin
+  pinMode(pin, OUTPUT);
+  OnOff(false);
 }
 
 void Led::OnOff(bool onOff) {
