@@ -6,8 +6,8 @@
 #include <QuickStats.h>
 
 #include "Battery.h"
-#include "Led.h"
 #include "Dht22.h"
+#include "Led.h"
 #include "Utils.h"
 
 const char* ssid     = "McKearneys";
@@ -20,20 +20,21 @@ const int httpPort = 8080;
 #define DHTPIN  12
 #define MICROSECONDS_PER_MINUTE 60*1000000  // 60 seconds * 1 million 
 
-const int numberOfMinutesToSleep = 1;
-
-const int numTimesPerReading = 5; // times to read sensor per fread
 const int blueLedPin = 2;
-const int numTimesPerReadingUntilSend = 30;
 
-const uint8_t CODE_VERSION = 0x05; // Change/Increment this if we want to treat the EEPROM as "fresh"
+const int minutesBetweenMeasurements = 1;
+const int numTimesPerReading = 5; // times to read sensor per reading
+const int numReadingsUntilSend = 30;
+
+const uint8_t CODE_VERSION = 0x05; // Change/Increment this each version
+
 struct Readings {
   uint8_t marker; // indicator that we're reading proper data
   uint8_t readingsFinished;
 
-  int temperature[numTimesPerReadingUntilSend];
-  int humidity[numTimesPerReadingUntilSend];
-  int batteryLevel[numTimesPerReadingUntilSend];
+  int temperature[numReadingsUntilSend];
+  int humidity[numReadingsUntilSend];
+  int batteryLevel[numReadingsUntilSend];
 };
 
 // forward declarations
@@ -43,8 +44,7 @@ String arrayToJson(int* arr, int length);
 void SendData(Readings& data);
 void ReadValues(int index, Readings& storedData);
 
-
-// #define NO_SLEEP 1
+#define NO_SLEEP 1
 
 // temp/humidity + battery
 Dht22 dht22(DHTPIN);
@@ -58,56 +58,33 @@ void loop() {
   Serial.println("Next Batch");
   Readings data;
   InitializeStoredData(data);
-  for(int i=0; i < numTimesPerReadingUntilSend; ++i) {
+  for(int i=0; i < numReadingsUntilSend; ++i) {
+    elapsedMillis sinceStart;
     led.OnOff(true);
     ReadValues(i, data);
     led.OnOff(false);
-    Utils::Delay(numberOfMinutesToSleep * 60000);
+    
+    Serial.print(F("Took this many millis: "));
+    Serial.println(sinceStart);
+
+    // sleep for proper minutes minus processing time
+    uint32_t millisDelay = minutesBetweenMeasurements * 60000 - sinceStart;
+
+    Utils::Delay(millisDelay);
   }
   SendData(data);
 #endif
 }
 
-void ReadValues(int index, Readings& storedData) {
- // read new values
-  float 
-    temperature[numTimesPerReading], 
-    humidity[numTimesPerReading], 
-    batteryLevels[numTimesPerReading];
-
-  Serial.print(F("Reading Values for index: "));
-  Serial.println(index);
-      
-  dht22.ReadTempAndHumidity(numTimesPerReading, temperature, humidity);
-  battery.ReadLevels(numTimesPerReading, batteryLevels);
-
-  // normalize values
-
-  int temp = normalizeReadings(temperature, numTimesPerReading);
-  int hum = normalizeReadings(humidity, numTimesPerReading);
-  int batt = normalizeReadings(batteryLevels, numTimesPerReading);
-
-  Serial.print(F("Normalized Temp/Hum/Battery: "));
-  Serial.print(temp);
-  Serial.print(F(" "));
-  Serial.print(hum);
-  Serial.print(F(" "));
-  Serial.print(batt);
-  Serial.println();
-
-  storedData.temperature[index] = temp;
-  storedData.humidity[index] = hum;
-  storedData.batteryLevel[index] = batt;
-}
-
-
 void setup() {
   Serial.begin(115200);
   Utils::Delay(100);
-  Serial.println(); // newline after wakeup junk
 
-  Serial.print(F("\nHoop house version: "));
+  Serial.print(F("Hoopy name: "));
+  Serial.print(hostName);
+  Serial.print(F("running version: "));
   Serial.println(CODE_VERSION);
+  
 #ifndef NO_SLEEP
   
   elapsedMillis sinceStart;
@@ -125,7 +102,7 @@ void setup() {
   int newIndex = storedData.readingsFinished;
   ReadValues(newIndex, storedData);
 
-  if (newIndex == numTimesPerReadingUntilSend-1) {
+  if (newIndex == numReadingsUntilSend-1) {
 
     Serial.println(F("Last Reading: uploading!"));
     // this is the last reading before send, so send now
@@ -143,7 +120,7 @@ void setup() {
   EEPROM.end();
   
   Serial.print(F("Sleeping for "));
-  Serial.print(numberOfMinutesToSleep);
+  Serial.print(minutesBetweenMeasurements);
   Serial.println(F(" minutes. Zzzz..."));
   led.OnOff(false);
 
@@ -151,30 +128,63 @@ void setup() {
   Serial.println(sinceStart);
 
   WakeMode wakeMode = WAKE_RF_DISABLED;
-  if (storedData.readingsFinished == numTimesPerReadingUntilSend-1) {
+  if (storedData.readingsFinished == numReadingsUntilSend-1) {
     // wake up w/ Wifi next time
     wakeMode = WAKE_RF_DEFAULT;
   }
 
   // sleep for proper minutes minus processing time
-  uint32_t timeToSleep = numberOfMinutesToSleep * MICROSECONDS_PER_MINUTE - sinceStart * 1000;
+  uint32_t timeToSleep = minutesBetweenMeasurements * MICROSECONDS_PER_MINUTE - sinceStart * 1000;
   
   ESP.deepSleep(timeToSleep, wakeMode);
 #endif
 }
 
+///////// IMPLEMENTATION below
+
+
 void InitializeStoredData(Readings& data) {
     data.marker = CODE_VERSION;
     data.readingsFinished = 0;
 
-    for(int i=0; i < numTimesPerReadingUntilSend; ++i) {
+    for(int i=0; i < numReadingsUntilSend; ++i) {
       data.temperature[i] = -1;
       data.humidity[i] = -1;
       data.batteryLevel[i] = -1;
     }
 }
 
-///////// IMPLEMENTATION below
+void ReadValues(int index, Readings& storedData) {
+    // read new values
+    float
+        temperature[numTimesPerReading],
+        humidity[numTimesPerReading],
+        batteryLevels[numTimesPerReading];
+
+    Serial.print(F("Reading Values for index: "));
+    Serial.println(index);
+
+    dht22.ReadTempAndHumidity(numTimesPerReading, temperature, humidity);
+    battery.ReadLevels(numTimesPerReading, batteryLevels);
+
+    // normalize values
+
+    int temp = normalizeReadings(temperature, numTimesPerReading);
+    int hum = normalizeReadings(humidity, numTimesPerReading);
+    int batt = normalizeReadings(batteryLevels, numTimesPerReading);
+
+    Serial.print(F("Normalized Temp/Hum/Battery: "));
+    Serial.print(temp);
+    Serial.print(F(" "));
+    Serial.print(hum);
+    Serial.print(F(" "));
+    Serial.print(batt);
+    Serial.println();
+
+    storedData.temperature[index] = temp;
+    storedData.humidity[index] = hum;
+    storedData.batteryLevel[index] = batt;
+}
 
 // global QuickStats for simple stats
 QuickStats stats;
@@ -234,9 +244,9 @@ void SendData(Readings& data) {
   Serial.println(url);
 
   String messageBody = String(F("{\"version\": ")) + CODE_VERSION 
-    + F(", \"temps\": ") + arrayToJson(data.temperature, numTimesPerReadingUntilSend) 
-    + F(", \"humidity\": ") + arrayToJson(data.humidity, numTimesPerReadingUntilSend) 
-    + F(", \"battery\": ") + arrayToJson(data.batteryLevel, numTimesPerReadingUntilSend) 
+    + F(", \"temps\": ") + arrayToJson(data.temperature, numReadingsUntilSend) 
+    + F(", \"humidity\": ") + arrayToJson(data.humidity, numReadingsUntilSend) 
+    + F(", \"battery\": ") + arrayToJson(data.batteryLevel, numReadingsUntilSend) 
     + F("}\r\n");
 
   Serial.println(messageBody);

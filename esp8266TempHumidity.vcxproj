@@ -1,0 +1,144 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{B448A62E-8498-45BD-8EC1-93562275C140}</ProjectGuid>
+    <RootNamespace>esp8266TempHumidity</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2\cores\esp8266;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2\variants\generic;C:\Users\tom\Documents\GitHub\esp8266TempHumidity;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2\libraries\EEPROM;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2\libraries\EEPROM\utility;C:\Users\tom\Documents\Arduino\libraries\elapsedMillis;C:\Users\tom\Documents\Arduino\libraries\elapsedMillis\utility;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2\libraries\ESP8266WiFi\src;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2\libraries\ESP8266WiFi\src\utility;C:\Users\tom\Documents\Arduino\libraries\QuickStats;C:\Users\tom\Documents\Arduino\libraries\QuickStats\utility;C:\Program Files (x86)\Arduino\libraries;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2\libraries;C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE\Extensions\ddjrwt4m.43p\Micro Platforms\default\debuggers;C:\Users\tom\Documents\Arduino\libraries;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2/tools/sdk/include;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2\cores\esp8266;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2\variants\generic;C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE\Extensions\ddjrwt4m.43p\Micro Platforms\default\debuggers\VM_DBG;C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE\Extensions\ddjrwt4m.43p\Micro Platforms\default\debuggers;C:\Users\tom\Documents\Arduino\libraries\elapsedMillis;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2\libraries\EEPROM;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2\libraries\ESP8266WiFi\src;C:\Users\tom\Documents\Arduino\libraries\QuickStats;C:\Users\tom\Documents\Arduino\libraries\DHT_sensor_library;C:\Program Files (x86)\Arduino\libraries;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2\libraries;C:\Users\tom\Documents\Arduino\libraries;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\1.20.0-26-gb404fb9-2\xtensa-lx106-elf\include\c++\4.8.2;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\1.20.0-26-gb404fb9-2\xtensa-lx106-elf\include\c++\4.8.2\xtensa-lx106-elf;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\1.20.0-26-gb404fb9-2\xtensa-lx106-elf\include;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\1.20.0-26-gb404fb9-2\lib\gcc\xtensa-lx106-elf\4.8.2\include;C:\Users\tom\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.1.0-rc2\tools\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ForcedIncludeFiles>C:\Users\tom\Documents\GitHub\esp8266TempHumidity\__vm\.esp8266TempHumidity.vsarduino.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <PreprocessorDefinitions>__ESP8266_ESp8266__;__ESP8266_ESP8266__;_VMDEBUG=1;__ets__;ICACHE_FLASH;F_CPU=80000000L;ARDUINO=10608;ARDUINO_ESP8266_ESP01;ARDUINO_ARCH_ESP8266;ESP8266;__cplusplus=201103L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="esp8266TempHumidity.ino">
+      <FileType>CppCode</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Battery.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="Dht22.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="Led.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="__vm\.esp8266TempHumidity.vsarduino.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Battery.cpp" />
+    <ClCompile Include="Dht22.cpp" />
+    <ClCompile Include="Led.cpp" />
+    <ClCompile Include="Utils.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
