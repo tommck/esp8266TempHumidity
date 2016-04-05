@@ -50,5 +50,6 @@ Temporary Items
 # Visual Micro Files
 __vm
 Debug
+Release
 .vs
 *.vcxproj

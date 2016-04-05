@@ -1,3 +1,5 @@
+#include <OneWire.h>
+#include <DallasTemperature.h>
 #include <elapsedMillis.h>
 
 #include <EEPROM.h>
@@ -9,10 +11,12 @@
 #include "Dht22.h"
 #include "Led.h"
 #include "Utils.h"
+#include "Ds18b20.h"
 
 const char* ssid     = "McKearneys";
 const char* password = "";
-const char* hostName = "hoopy-inside"; // TODO: CHANGE FOR EACH DEVICE!
+const char* hostName = "hoopy-outside"; // TODO: CHANGE FOR EACH DEVICE!
+#define HAS_SOIL_TEMP 1
  
 const char* host = "192.168.0.106";
 const int httpPort = 8080;
@@ -20,13 +24,11 @@ const int httpPort = 8080;
 #define DHTPIN  12
 #define MICROSECONDS_PER_MINUTE 60*1000000  // 60 seconds * 1 million 
 
-const int blueLedPin = 2;
-
 const int minutesBetweenMeasurements = 1;
 const int numTimesPerReading = 5; // times to read sensor per reading
 const int numReadingsUntilSend = 30;
 
-const uint8_t CODE_VERSION = 0x05; // Change/Increment this each version
+const uint8_t CODE_VERSION = 0x07; // Change/Increment this each version
 
 struct Readings {
   uint8_t marker; // indicator that we're reading proper data
@@ -35,6 +37,7 @@ struct Readings {
   int temperature[numReadingsUntilSend];
   int humidity[numReadingsUntilSend];
   int batteryLevel[numReadingsUntilSend];
+  int soilTemperature[numReadingsUntilSend];
 };
 
 // forward declarations
@@ -50,8 +53,12 @@ void ReadValues(int index, Readings& storedData);
 Dht22 dht22(DHTPIN);
 Battery battery(A0);
 
-// LED for debugging
-Led led(2); // pin 2
+#ifdef HAS_SOIL_TEMP
+Ds18b20 soilTemp(4);
+#endif
+
+// Using Blue LED for debugging
+Led led(2, true); // pin 2 needs inverting
 
 void loop() {
 #ifdef NO_SLEEP
@@ -80,9 +87,9 @@ void setup() {
   Serial.begin(115200);
   Utils::Delay(100);
 
-  Serial.print(F("Hoopy name: "));
+  Serial.print(F("\nHoopy name: "));
   Serial.print(hostName);
-  Serial.print(F("running version: "));
+  Serial.print(F(" running version: "));
   Serial.println(CODE_VERSION);
   
 #ifndef NO_SLEEP
@@ -164,26 +171,27 @@ void ReadValues(int index, Readings& storedData) {
     Serial.print(F("Reading Values for index: "));
     Serial.println(index);
 
+    // read and normalize values
     dht22.ReadTempAndHumidity(numTimesPerReading, temperature, humidity);
-    battery.ReadLevels(numTimesPerReading, batteryLevels);
-
-    // normalize values
-
     int temp = normalizeReadings(temperature, numTimesPerReading);
     int hum = normalizeReadings(humidity, numTimesPerReading);
+
+    battery.ReadLevels(numTimesPerReading, batteryLevels);
     int batt = normalizeReadings(batteryLevels, numTimesPerReading);
 
-    Serial.print(F("Normalized Temp/Hum/Battery: "));
-    Serial.print(temp);
-    Serial.print(F(" "));
-    Serial.print(hum);
-    Serial.print(F(" "));
-    Serial.print(batt);
-    Serial.println();
+    int soilTemperature = -1;
+    #ifdef HAS_SOIL_TEMP
+    float soilTempF;
+    soilTemp.ReadTemp(1, &soilTempF);
+    soilTemperature = (int)soilTempF;
+    #endif
+
+    Serial.printf("Normalized Temp/Hum/Battery/Soil Temp: %d/%d/%d/%d\n", temp, hum, batt, soilTemperature);
 
     storedData.temperature[index] = temp;
     storedData.humidity[index] = hum;
     storedData.batteryLevel[index] = batt;
+    storedData.soilTemperature[index] = soilTemperature;
 }
 
 // global QuickStats for simple stats
@@ -247,6 +255,7 @@ void SendData(Readings& data) {
     + F(", \"temps\": ") + arrayToJson(data.temperature, numReadingsUntilSend) 
     + F(", \"humidity\": ") + arrayToJson(data.humidity, numReadingsUntilSend) 
     + F(", \"battery\": ") + arrayToJson(data.batteryLevel, numReadingsUntilSend) 
+    + F(", \"soilTemp\": ") + arrayToJson(data.soilTemperature, numReadingsUntilSend) 
     + F("}\r\n");
 
   Serial.println(messageBody);
