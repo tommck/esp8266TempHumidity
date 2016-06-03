@@ -38,9 +38,7 @@ void ReadValues(int index, Readings& storedData);
 Dht22 dht22(Config::dhtPin);
 Battery battery(A0); // TODO: config?
 
-#ifdef HAS_SOIL_TEMP
 Ds18b20 soilTemp(Config::ds18b20Pin);
-#endif
 
 // Using Blue LED for debugging
 Led led(2, true); // pin 2 needs inverting
@@ -163,11 +161,11 @@ void ReadValues(int index, Readings& storedData) {
     int batt = normalizeReadings(batteryLevels, Config::numTimesPerReading);
 
     int soilTemperature = -1;
-    #ifdef HAS_SOIL_TEMP
-    float soilTempF;
-    soilTemp.ReadTemp(1, &soilTempF);
-    soilTemperature = (int)soilTempF;
-    #endif
+    if (Config::hasSoilTemp == true) {
+      float soilTempF;
+      soilTemp.ReadTemp(1, &soilTempF);
+      soilTemperature = (int)soilTempF;
+    }
 
     Serial.printf("Normalized Temp/Hum/Battery/Soil Temp: %d/%d/%d/%d\n", temp, hum, batt, soilTemperature);
 
