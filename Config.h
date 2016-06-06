@@ -1,6 +1,9 @@
+#include <DallasTemperature.h>
+#include <DHT.h>
+#pragma once
 
 struct Config {
-    static const uint8_t codeVersion = 0x08; // Change/Increment this each version
+    static const uint8_t codeVersion = 0x10; // Change/Increment this each version
 
     // Networking
     static constexpr char* ssid     = "McKearneys";
@@ -11,8 +14,10 @@ struct Config {
 
     // sensor config
     static const int dhtPin = 12;
+    static const int dhtType = DHT22;
     static const bool hasSoilTemp = false;
     static const int ds18b20Pin = 4;
+    static const int batteryPin = A0;
 
     // app config
     static const bool shouldSleep = false;

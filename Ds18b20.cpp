@@ -3,8 +3,6 @@
 #include "Ds18b20.h"
 #include "Utils.h"
 
-#define DHTTYPE DHT22
-
 Ds18b20::Ds18b20(int pin) 
 {
     // initialze the protocol

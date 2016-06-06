@@ -29,10 +29,16 @@ struct Readings {
 
 // forward declarations
 void InitializeStoredData(Readings& data);
-int normalizeReadings(float* readings, int length);
 String arrayToJson(int* arr, int length);
 void SendData(Readings& data);
 void ReadValues(int index, Readings& storedData);
+
+
+ISensorReader[] Sensors = [
+  BatterySensorReader(),
+  Dht22SensorReader(),
+  Hs1b2soSensorReader()
+];
 
 // temp/humidity + battery
 Dht22 dht22(Config::dhtPin);
@@ -154,11 +160,11 @@ void ReadValues(int index, Readings& storedData) {
 
     // read and normalize values
     dht22.ReadTempAndHumidity(Config::numTimesPerReading, temperature, humidity);
-    int temp = normalizeReadings(temperature, Config::numTimesPerReading);
-    int hum = normalizeReadings(humidity, Config::numTimesPerReading);
+    int temp = Utils::normalizeReadings(temperature, Config::numTimesPerReading);
+    int hum = Utils::normalizeReadings(humidity, Config::numTimesPerReading);
 
     battery.ReadLevels(Config::numTimesPerReading, batteryLevels);
-    int batt = normalizeReadings(batteryLevels, Config::numTimesPerReading);
+    int batt = Utils::normalizeReadings(batteryLevels, Config::numTimesPerReading);
 
     int soilTemperature = -1;
     if (Config::hasSoilTemp == true) {
@@ -175,14 +181,6 @@ void ReadValues(int index, Readings& storedData) {
     storedData.soilTemperature[index] = soilTemperature;
 }
 
-// global QuickStats for simple stats
-QuickStats stats;
-int normalizeReadings(float* readings, int length) {
-    stats.bubbleSort(readings, length);
-
-    // trims off the largest and smallest values and averages the rest
-    return (int)stats.average(&readings[1], length-2);  
-}
 
 String arrayToJson(int* arr, int length) 
 {
